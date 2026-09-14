@@ -39,6 +39,11 @@ the right, SQL bar on top.
 
 Three panes, one focused at a time. Focus ring: sidebar → grid → search bar.
 
+Single-letter keys (`q`, `r`, `s`, `f`, `n`, `p`, `g`, `G`, `h/j/k/l`) are
+only active when the sidebar or grid is focused. When the search bar is
+focused every printable key is text input; only `Tab`, `Esc`, `Enter`,
+`↑/↓` and `Ctrl-C` are special.
+
 Global:
 - `Tab` cycle focus. `/` focus search bar from anywhere. `Esc` return to grid.
 - `q` quit. If a write is uncommitted, prompt once; second `q` rolls back and exits.
