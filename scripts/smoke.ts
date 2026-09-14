@@ -42,4 +42,9 @@ await slow.then(
   (e: Error) => ok('cancel interrupts a running read', /cancel/i.test(e.message)),
 )
 
+await db.write('create temp table tron_probe(a int); commit').then(
+  () => ok('write rejects a batch that ends its own transaction', false),
+  (e: Error) => ok('write rejects a batch that ends its own transaction', /ended the transaction/.test(e.message)),
+)
+
 await db.close()

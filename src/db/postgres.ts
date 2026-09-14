@@ -103,13 +103,17 @@ export async function openPostgres(url: string): Promise<Adapter> {
     async write(text): Promise<PendingWrite> {
       const r = await sql.reserve()
       try {
-        await r.unsafe('begin')
+        // The SET LOCAL sentinel dies with the transaction: if the batch commits or rolls back on its
+        // own, the after-snapshot no longer sees it and the confirm step is reported as bypassed.
+        await r.unsafe("begin; set local tron.in_write = '1'")
         const before = await touched(r)
         const q = r.unsafe(text) // no params → simple protocol → multi-statement input works
         current = q
         await q
         current = null
-        const affected = Math.max(0, (await touched(r)) - before)
+        const after = await touched(r)
+        if (!after.inWrite) throw new Error('batch ended the transaction itself; any changes are already committed')
+        const affected = Math.max(0, after.n - before.n)
         let done = false
         const finish = async (verb: 'commit' | 'rollback') => {
           if (done) return
@@ -143,9 +147,11 @@ export async function openPostgres(url: string): Promise<Adapter> {
 // statement's count, so ask the server: rows inserted/updated/deleted so far in this transaction.
 // The counter also carries this backend's not-yet-flushed stats from earlier transactions, hence
 // the before/after diff in write(). Counts trigger and cascade side effects; 0 if track_counts is off.
-async function touched(r: postgres.ReservedSql): Promise<number> {
-  const [row] = await r.unsafe<{ n: number }[]>(
-    'select coalesce(sum(n_tup_ins + n_tup_upd + n_tup_del), 0)::int as n from pg_stat_xact_user_tables',
+async function touched(r: postgres.ReservedSql): Promise<{ n: number; inWrite: boolean }> {
+  const [row] = await r.unsafe<{ n: number; in_write: string | null }[]>(
+    `select coalesce(sum(n_tup_ins + n_tup_upd + n_tup_del), 0)::int as n,
+            current_setting('tron.in_write', true) as in_write
+     from pg_stat_xact_user_tables`,
   )
-  return row?.n ?? 0
+  return { n: row?.n ?? 0, inWrite: row?.in_write === '1' }
 }
