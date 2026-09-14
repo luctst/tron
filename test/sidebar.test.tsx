@@ -54,3 +54,45 @@ test('views are marked', () => {
   )
   assert.match(lastFrame() ?? '', /users \(v\)/)
 })
+
+test('h on a table row collapses its schema and moves the cursor to the header', async () => {
+  const opened: TableRef[] = []
+  const { stdin, lastFrame } = render(
+    <Sidebar tables={tables} selected={null} active width={20} height={10} onOpen={(t) => opened.push(t)} onLeave={noop} onCapture={noop} />,
+  )
+  stdin.write('j')
+  await tick()
+  stdin.write('h')
+  await tick()
+  assert.doesNotMatch(lastFrame() ?? '', /events/)
+  stdin.write('\r')
+  await tick()
+  assert.deepEqual(opened, [])
+  assert.match(lastFrame() ?? '', /events/)
+})
+
+test('h on an already collapsed schema keeps it collapsed', async () => {
+  const { stdin, lastFrame } = render(
+    <Sidebar tables={tables} selected={null} active width={20} height={10} onOpen={noop} onLeave={noop} onCapture={noop} />,
+  )
+  stdin.write('h')
+  await tick()
+  stdin.write('h')
+  await tick()
+  assert.doesNotMatch(lastFrame() ?? '', /events/)
+})
+
+test('filtering after scrolling deep keeps the top of the shorter list visible', async () => {
+  const many: TableRef[] = Array.from({ length: 40 }, (_, i) => ({ schema: 'big', name: `t${String(i).padStart(2, '0')}`, kind: 'table' as const }))
+  const { stdin, lastFrame } = render(
+    <Sidebar tables={many} selected={null} active width={20} height={10} onOpen={noop} onLeave={noop} onCapture={noop} />,
+  )
+  stdin.write('G')
+  await tick()
+  stdin.write('f')
+  await tick()
+  stdin.write('t00')
+  await tick()
+  assert.match(lastFrame() ?? '', /big/)
+  assert.match(lastFrame() ?? '', /t00/)
+})

@@ -44,7 +44,7 @@ export function Sidebar({ tables, selected, active, width, height, onOpen, onLea
   const lines = buildLines(tables, filter, collapsed)
   const listHeight = Math.max(1, height - 1) // last line is the filter prompt
   const cur = clamp(cursor, 0, Math.max(0, lines.length - 1))
-  const start = scrollTo(cur, offset, listHeight)
+  const start = scrollTo(cur, clamp(offset, 0, Math.max(0, lines.length - listHeight)), listHeight)
 
   const jump = (to: number) => {
     const next = clamp(to, 0, Math.max(0, lines.length - 1))
@@ -58,6 +58,7 @@ export function Sidebar({ tables, selected, active, width, height, onOpen, onLea
       else n.add(schema)
       return n
     })
+  const collapse = (schema: string) => setCollapsed((c) => new Set(c).add(schema))
 
   useInput(
     (input, key) => {
@@ -95,7 +96,14 @@ export function Sidebar({ tables, selected, active, width, height, onOpen, onLea
         else toggle(line.schema)
         return
       }
-      if (input === 'h') toggle(line.kind === 'schema' ? line.schema : line.ref.schema)
+      if (input === 'h') {
+        let parent = cur
+        while (parent > 0 && lines[parent]!.kind !== 'schema') parent--
+        const header = lines[parent]!
+        if (header.kind !== 'schema') return
+        jump(parent)
+        collapse(header.schema)
+      }
     },
     { isActive: active },
   )
