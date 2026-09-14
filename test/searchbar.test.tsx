@@ -52,3 +52,11 @@ test('Escape leaves, Ctrl-U clears', async () => {
   await tick()
   assert.equal(left, 1)
 })
+
+test('a coalesced chunk ending in Enter still runs', async () => {
+  const runs: string[] = []
+  const { stdin } = render(<SearchBar active history={[]} onRun={(s) => runs.push(s)} onLeave={() => {}} />)
+  stdin.write('select 2\r')
+  await tick()
+  assert.deepEqual(runs, ['select 2'])
+})

@@ -65,6 +65,7 @@ export function App({ db, profile }: { db: Adapter; profile: string }) {
   }, [running, pending])
 
   const fail = useCallback((e: unknown) => {
+    setCapture(false) // the pane that captured may unmount below without releasing
     const message = describeError(e)
     if (isConnectionError(e)) setDisconnected(message)
     setView({ kind: 'error', message })
@@ -135,6 +136,7 @@ export function App({ db, profile }: { db: Adapter; profile: string }) {
       settling.current = true
       const p = pending
       setPending(null)
+      setFocus('grid')
       try {
         await (commit ? p.commit() : p.rollback())
         setNotice(commit ? `${p.label} committed, ${p.affected} rows` : `${p.label} rolled back`)
@@ -167,9 +169,10 @@ export function App({ db, profile }: { db: Adapter; profile: string }) {
     else exit()
   }, [pending, settle, exit])
 
-  // Write confirmation: y commits, q rolls back and quits, anything else rolls back.
+  // Write confirmation: y commits, q or Ctrl-C rolls back and quits, anything else rolls back.
   useInput(
-    (input) => {
+    (input, key) => {
+      if (key.ctrl && input === 'c') return void settle(false, true)
       if (input === 'y') void settle(true)
       else if (input === 'q') void settle(false, true)
       else void settle(false)
@@ -250,7 +253,7 @@ export function App({ db, profile }: { db: Adapter; profile: string }) {
         ? '[j/k] move  [Enter] open  [f] filter  [Tab] pane  [/] query  [q] quit'
         : '[hjkl] move  [Enter] cell  [s] structure  [n/p] page  [/] query  [q] quit'
 
-  const gridActive = focus === 'grid' && pending === null
+  const gridActive = focus === 'grid' && pending === null && running === null
   const main =
     view.kind === 'error' ? (
       <Text color="red" wrap="wrap">

@@ -35,6 +35,14 @@ export function SearchBar({ active, history, onRun, onLeave }: Props) {
       if (key.backspace || key.delete) return setValue((v) => v.slice(0, -1))
       if (key.ctrl && input === 'u') return setValue('')
       if (key.ctrl || key.meta || key.tab || key.leftArrow || key.rightArrow || !input) return
+      if (/[\r\n]/.test(input)) {
+        // Ink hands coalesced keystrokes to us as one chunk: `text\r` is text followed by Enter.
+        const [head] = input.split(/\r|\n/)
+        const sql = (value + head).trim()
+        setValue(value + head)
+        if (sql) onRun(sql)
+        return
+      }
       setValue((v) => v + input)
     },
     { isActive: active },
