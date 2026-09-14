@@ -54,7 +54,7 @@ function visibleCols(widths: number[], width: number, start: number): number[] {
 }
 
 function colScroll(widths: number[], width: number, target: number, start: number): number {
-  if (target < start) return target
+  if (target <= start) return target
   let s = start
   while (!visibleCols(widths, width, s).includes(target)) s++
   return s

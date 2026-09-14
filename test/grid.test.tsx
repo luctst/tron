@@ -60,3 +60,32 @@ test('Enter opens a popup with the full value and any key closes it', async () =
   await tick()
   assert.doesNotMatch(lastFrame() ?? '', /a{40}/)
 })
+
+test('renders a zero-row, zero-column result without hanging', () => {
+  const { lastFrame } = render(<Grid columns={[]} rows={[]} width={40} height={4} active />)
+  assert.match(lastFrame() ?? '', /0 rows/)
+})
+
+test('onCapture reports true when the popup opens and false when it closes', async () => {
+  const captured: boolean[] = []
+  const { stdin } = render(<Grid columns={columns} rows={rows} width={60} height={6} active onCapture={(on) => captured.push(on)} />)
+  stdin.write('\r')
+  await tick()
+  stdin.write('x')
+  await tick()
+  assert.deepEqual(captured, [true, false])
+})
+
+test('keys are ignored when inactive', async () => {
+  const { lastFrame, stdin } = render(<Grid columns={columns} rows={rows} width={60} height={3} active={false} />)
+  stdin.write('j')
+  await tick()
+  stdin.write('j')
+  await tick()
+  assert.doesNotMatch(lastFrame() ?? '', /carol/)
+})
+
+test('null cells render as NULL', () => {
+  const { lastFrame } = render(<Grid columns={['a']} rows={[[null]]} width={20} height={3} active />)
+  assert.match(lastFrame() ?? '', /NULL/)
+})
