@@ -41,7 +41,8 @@ export const PAGE_SIZE = 100
 
 export function isConnectionError(e: unknown): boolean {
   const code = (e as { code?: unknown } | null)?.code
-  return typeof code === 'string' && (code.startsWith('CONNECTION') || code.startsWith('ECONN'))
+  // CONNECT* covers postgres.js's CONNECTION_* codes and CONNECT_TIMEOUT.
+  return typeof code === 'string' && (code.startsWith('CONNECT') || code.startsWith('ECONN'))
 }
 
 export function describeError(e: unknown): string {

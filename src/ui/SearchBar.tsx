@@ -8,6 +8,11 @@ interface Props {
   onLeave(): void
 }
 
+/** A pasted statement becomes one line, so `-- …` comments must go first or they swallow the rest. */
+function normalizePaste(text: string): string {
+  return text.replace(/--[^\n]*/g, '').replace(/\s*\r?\n\s*/g, ' ')
+}
+
 export function SearchBar({ active, history, onRun, onLeave }: Props) {
   const [value, setValue] = useState('')
   const [draft, setDraft] = useState('')
@@ -48,7 +53,7 @@ export function SearchBar({ active, history, onRun, onLeave }: Props) {
     { isActive: active },
   )
 
-  usePaste((text) => setValue((v) => v + text.replace(/\s*\r?\n\s*/g, ' ')), { isActive: active })
+  usePaste((text) => setValue((v) => v + normalizePaste(text)), { isActive: active })
 
   return (
     <Text wrap="truncate-start">

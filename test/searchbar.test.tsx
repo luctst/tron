@@ -60,3 +60,10 @@ test('a coalesced chunk ending in Enter still runs', async () => {
   await tick()
   assert.deepEqual(runs, ['select 2'])
 })
+
+test('a pasted statement drops -- comments before it is flattened to one line', async () => {
+  const { stdin, lastFrame } = render(<SearchBar active history={[]} onRun={() => {}} onLeave={() => {}} />)
+  stdin.write('\u001B[200~select id -- pk\nfrom users\u001B[201~')
+  await tick()
+  assert.match((lastFrame() ?? '').replace(/ +/g, ' '), /select id from users/)
+})

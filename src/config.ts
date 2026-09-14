@@ -40,8 +40,8 @@ export function loadConfig(path = defaultConfigPath()): Config {
   let text: string
   try {
     text = readFileSync(path, 'utf8')
-  } catch {
-    throw new Error(`config not found at ${path}`)
+  } catch (e) {
+    throw new Error(`cannot read config at ${path}: ${(e as Error).message}`)
   }
   return parseConfig(text, path)
 }

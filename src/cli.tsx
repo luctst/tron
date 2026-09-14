@@ -17,6 +17,9 @@ try {
   const { name, url } = selectProfile(loadConfig(), positionals[0])
   const db = await openPostgres(url)
   process.stdout.write('\x1b[?1049h') // alternate screen
+  // The finally below does not run on an uncaught throw; this does, so a crash never strands the
+  // user on the alternate screen. Writing the sequence twice is a no-op.
+  process.on('exit', () => process.stdout.write('\x1b[?1049l'))
   try {
     await render(<App db={db} profile={name} />, { exitOnCtrlC: false }).waitUntilExit()
   } finally {

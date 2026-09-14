@@ -40,7 +40,7 @@ tron           # works without a name when there is exactly one
 | sidebar, grid | `q` | quit |
 | sidebar, grid | `r` | reload tables / reconnect |
 | sidebar | `j` `k` `g` `G` | move |
-| sidebar | `Enter` `l` | open table (or expand schema) |
+| sidebar | `Enter` `l` | open table (or toggle schema) |
 | sidebar | `h` | collapse schema |
 | sidebar | `f` | filter by substring, `Enter` keeps it, `Esc` clears |
 | grid | `h` `j` `k` `l` `g` `G` | move |
@@ -56,9 +56,13 @@ tron           # works without a name when there is exactly one
 | write pending | `q` | roll back and quit |
 | write pending | anything else | roll back |
 
+`s`, `n`, `p`, `/`, `q` and `r` also work while the sidebar has focus, not just the grid.
+
 ## How writes work
 
 Anything that is not `SELECT`, `WITH`, `VALUES`, `TABLE`, `EXPLAIN` or `SHOW` runs inside `BEGIN …` and stops before `COMMIT`. The status bar shows the real affected-row count and a timer, because locks are held while you decide. Reads run in a `READ ONLY` transaction, so a misclassified write is rejected by Postgres itself.
+
+Reads are one statement at a time; `a; b` in a read is rejected by the server.
 
 Reads return at most 500 rows. Tables opened from the sidebar page 100 at a time.
 

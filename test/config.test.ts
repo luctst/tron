@@ -1,7 +1,9 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { join } from 'node:path'
-import { defaultConfigPath, expandEnv, parseConfig, selectProfile, type Config } from '../src/config.js'
+import { mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { defaultConfigPath, expandEnv, loadConfig, parseConfig, selectProfile, type Config } from '../src/config.js'
 
 test('defaultConfigPath honours XDG_CONFIG_HOME', () => {
   assert.equal(defaultConfigPath({ XDG_CONFIG_HOME: '/x' }), join('/x', 'tron', 'config.json'))
@@ -37,4 +39,9 @@ test('selectProfile defaults when there is exactly one', () => {
 test('selectProfile lists names when ambiguous or unknown', () => {
   assert.throws(() => selectProfile(two, undefined, {}), /one of: prod, local/)
   assert.throws(() => selectProfile(two, 'nope', {}), /unknown connection "nope"/)
+})
+
+test('loadConfig reports the path and the fs reason', () => {
+  const missing = join(mkdtempSync(join(tmpdir(), 'tron-')), 'config.json')
+  assert.throws(() => loadConfig(missing), /cannot read config at .*config\.json: .*ENOENT/)
 })

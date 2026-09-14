@@ -1,3 +1,4 @@
+import { execSync } from 'node:child_process'
 import { openPostgres } from '../src/db/postgres.js'
 
 const url = process.env.DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5499/postgres'
@@ -46,5 +47,33 @@ await db.write('create temp table tron_probe(a int); commit').then(
   () => ok('write rejects a batch that ends its own transaction', false),
   (e: Error) => ok('write rejects a batch that ends its own transaction', /ended the transaction/.test(e.message)),
 )
+
+// A backend that dies while a write waits for confirmation must not crash the process or poison
+// the pool. Kill the idle-in-transaction backend from outside, then try to confirm.
+const w3 = await db.write('update smoke_users set name = name')
+let terminated = true
+try {
+  execSync(
+    'docker exec tron-pg psql -U postgres -tAc "select pg_terminate_backend(pid) from pg_stat_activity' +
+      " where pid <> pg_backend_pid() and state = 'idle in transaction'\"",
+    { stdio: 'pipe' },
+  )
+} catch (e) {
+  terminated = false
+  console.log('SKIP', 'could not terminate the write backend:', (e as Error).message.split('\n')[0])
+}
+if (terminated) {
+  await new Promise((r) => setTimeout(r, 300))
+  await w3.commit().then(
+    () => ok('commit after a lost connection rejects', false),
+    (e: Error) => ok('commit after a lost connection rejects', /connection lost/.test(e.message)),
+  )
+  const alive = await db.read('select 1 as one', 1)
+  ok('the pool still reads after a lost write connection', alive.rows[0]?.[0] === 1)
+  const names = await db.read('select name from smoke_users order by name', 10)
+  ok('the lost write committed nothing', names.rows.map((r) => r[0]).join(',') === 'kept,seed')
+} else {
+  await w3.rollback()
+}
 
 await db.close()

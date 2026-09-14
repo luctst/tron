@@ -4,9 +4,13 @@ import type { Adapter, PendingWrite, Result, TableInfo, TableRef } from './adapt
 type Cancellable = { cancel(): void }
 
 export async function openPostgres(url: string): Promise<Adapter> {
+  // Bumped every time the driver loses a backend. postgres.js does not fail a *reserved*
+  // connection's pending queries when its socket dies (reserve() never installs c.onclose the way
+  // begin() does), so this counter is the only signal write() gets. See finish() below.
+  let closes = 0
   // max 2: one for reads while a reserved write connection waits for confirmation.
   // onnotice: swallow NOTICE output, it would corrupt the TUI.
-  const sql = postgres(url, { max: 2, connect_timeout: 10, onnotice: () => {} })
+  const sql = postgres(url, { max: 2, connect_timeout: 10, onnotice: () => {}, onclose: () => { closes++ } })
   await sql`select 1` // fail fast with the driver's own message
 
   let current: Cancellable | null = null
@@ -112,10 +116,19 @@ export async function openPostgres(url: string): Promise<Adapter> {
         await q
         current = null
         const after = await touched(r)
-        if (!after.inWrite) throw new Error('batch ended the transaction itself; any changes are already committed')
+        if (!after.inWrite) throw new Error('batch ended the transaction itself, so tron could not confirm it')
         const affected = Math.max(0, after.n - before.n)
+        // Snapshot once the batch is done: from here on, any close belongs to the wait for confirmation.
+        const closesBefore = closes
         let done = false
         const finish = async (verb: 'commit' | 'rollback') => {
+          // A dropped backend leaves the reserved connection in the driver's `closed` queue with a
+          // null socket, and nothing rejects. Sending the verb would reach socket.write on null in a
+          // setImmediate (uncaught, fatal), and release() would push the dead connection into `open`
+          // and poison the next pool query. Leaving it in `closed` is what lets the pool reconnect it.
+          if (closes !== closesBefore) {
+            throw new Error('connection lost while the write was pending; nothing was committed')
+          }
           if (done) return
           done = true
           try {
