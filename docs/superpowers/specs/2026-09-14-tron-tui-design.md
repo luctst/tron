@@ -46,7 +46,7 @@ focused every printable key is text input; only `Tab`, `Esc`, `Enter`,
 
 Global:
 - `Tab` cycle focus. `/` focus search bar from anywhere. `Esc` return to grid.
-- `q` quit. If a write is uncommitted, prompt once; second `q` rolls back and exits.
+- `q` quit. While a write awaits confirmation, `q` rolls back and exits.
 - `r` reload sidebar (re-run information_schema query) / reconnect if dropped.
 - `Ctrl-C` cancel running query. Second `Ctrl-C` with nothing running quits.
 
@@ -83,8 +83,9 @@ Reads:
 - Sent verbatim through a postgres.js cursor, stopped after 500 rows. User's own
   `LIMIT` is respected because nothing is rewritten.
 - Exactly 500 rows back → `truncated: true`.
-- Belt-and-braces: if the returned command tag is not `SELECT`/`EXPLAIN`/`SHOW`
-  (e.g. a data-modifying CTE misclassified as read), abort and show a warning.
+- Belt-and-braces: reads run inside `BEGIN READ ONLY`. A misclassified write
+  (e.g. a data-modifying CTE) is rejected by Postgres itself with
+  `cannot execute DELETE in a read-only transaction`. No parsing needed.
 
 Writes:
 - `BEGIN` → execute → status bar shows `UPDATE affected 42 rows · commit? [y/N]`.
@@ -131,6 +132,7 @@ interface Adapter {
   read(sql: string, max: number): Promise<Result>
   write(sql: string): Promise<{ affected: number; commit(): Promise<void>; rollback(): Promise<void> }>
   cancel(): Promise<void>
+  close(): Promise<void>
 }
 
 interface Result {
@@ -180,7 +182,7 @@ CLI args parsed with `node:util.parseArgs`. No arg-parsing dependency.
 - Query error: shown in the grid pane in red with Postgres' position hint.
   Search bar text is preserved. App never crashes on a query error.
 - Connection dropped mid-session: status bar red, `r` reconnects.
-- Uncommitted write on quit: prompt once, second `q` rolls back and exits.
+- Uncommitted write on quit: `q` (or `Ctrl-C`) rolls back, then exits.
 
 ## Testing
 
