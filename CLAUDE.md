@@ -6,22 +6,22 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A keyboard-driven terminal database browser, built to replace DBeaver for someone who lives in nvim and the terminal. Sidebar of schemas/tables on the left, row grid on the right, SQL bar on top, status bar at the bottom. v1 targets PostgreSQL only; MySQL/MariaDB, SQLite and MongoDB are planned behind the adapter boundary. The one product promise that must never regress: **a write is never committed until the user presses `y`**, and the count shown before that prompt is the real affected-row count.
 
-Stack: TypeScript on Node 22+, Ink 7 (React for terminals), postgres.js 3.4. Runtime dependencies are exactly `ink`, `react`, `postgres`; do not add others. ESM only, relative imports carry the `.js` extension even from `.tsx`.
+Stack: TypeScript on Node 22+, Ink 7 (React for terminals), postgres.js 3.4. Runtime dependencies are exactly `ink`, `react`, `postgres`; do not add others. **pnpm is the package manager** (pinned in `packageManager`); never run `npm install` here, it would create a second lockfile that drifts. ESM only, relative imports carry the `.js` extension even from `.tsx`.
 
 ## Commands
 
 ```bash
-npm test                                   # tsc, then node:test over dist/test/*.test.js
-npm run build && node --test dist/test/grid.test.js        # one test file
-npm run build && node --test --test-name-pattern='popup' dist/test/grid.test.js   # one test by name
-npm run smoke                              # adapter check against a Docker Postgres (see below)
-npm run build && python3 scripts/pty-smoke.py               # 22-assertion end-to-end TUI run in a pseudo-terminal
-npm link                                   # installs the `tron` binary from dist/src/cli.js
+pnpm test                                  # tsc, then node:test over dist/test/*.test.js
+pnpm build && node --test dist/test/grid.test.js        # one test file
+pnpm build && node --test --test-name-pattern='popup' dist/test/grid.test.js   # one test by name
+pnpm smoke                                 # adapter check against a Docker Postgres (see below)
+pnpm build && python3 scripts/pty-smoke.py               # 22-assertion end-to-end TUI run in a pseudo-terminal
+pnpm link --global                         # installs the `tron` binary from dist/src/cli.js
 ```
 
 Tests run from compiled output, so every test cycle starts with `tsc`; there is no watch mode and no test-runner dependency. UI tests are `.tsx` because they render components, and Node cannot strip JSX on its own.
 
-`npm run smoke` and the pty harness need the throwaway database:
+`pnpm smoke` and the pty harness need the throwaway database:
 
 ```bash
 docker run --rm -d --name tron-pg -e POSTGRES_PASSWORD=postgres -p 5499:5432 postgres:16

@@ -8,7 +8,7 @@ Node 22 or newer.
 
 ```bash
 git clone <this repo> && cd tron
-npm install && npm run build && npm link
+pnpm install && pnpm build && pnpm link --global
 ```
 
 ## Configure
@@ -69,6 +69,6 @@ Reads return at most 500 rows. Tables opened from the sidebar page 100 at a time
 ## Development
 
 ```bash
-npm test            # tsc + node:test
-npm run smoke       # adapter check against a Docker Postgres, see scripts/smoke.ts
+pnpm test           # tsc + node:test
+pnpm smoke          # adapter check against a Docker Postgres, see scripts/smoke.ts
 ```
