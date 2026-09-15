@@ -1,0 +1,41 @@
+name: release
+
+on:
+  push:
+    branches: [main]
+    paths: [package.json]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # npm provenance
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+
+      # The trigger fires on any package.json edit, so ask the registry what is
+      # already there. Re-running a published version is a no-op, not a failure.
+      - id: version
+        run: |
+          spec="$(node -p 'require("./package.json").name + "@" + require("./package.json").version')"
+          echo "spec=$spec" >> "$GITHUB_OUTPUT"
+          if npm view "$spec" version >/dev/null 2>&1; then
+            echo "$spec is already published, skipping"
+            echo "new=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "new=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - if: steps.version.outputs.new == 'true'
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
