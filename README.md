@@ -7,7 +7,13 @@ Terminal database browser for PostgreSQL. Sidebar of tables, grid of rows, SQL b
 Node 22 or newer.
 
 ```bash
-git clone <this repo> && cd tron
+npm install --global @luctst/tron
+```
+
+Or from source:
+
+```bash
+git clone git@github.com:luctst/tron.git && cd tron
 pnpm install && pnpm add --global .
 ```
 

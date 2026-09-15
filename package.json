@@ -1,5 +1,5 @@
 {
-  "name": "tron",
+  "name": "@luctst/tron",
   "version": "0.1.0",
   "description": "Keyboard-driven terminal database browser for PostgreSQL",
   "license": "MIT",
