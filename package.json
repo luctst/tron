@@ -1,11 +1,18 @@
 {
   "name": "tron",
   "version": "0.1.0",
-  "private": true,
+  "description": "Keyboard-driven terminal database browser for PostgreSQL",
+  "license": "MIT",
+  "author": "Lucas Tostee",
+  "repository": { "type": "git", "url": "git+https://github.com/luctst/tron.git" },
+  "homepage": "https://github.com/luctst/tron#readme",
+  "bugs": "https://github.com/luctst/tron/issues",
+  "keywords": ["postgres", "postgresql", "tui", "terminal", "database", "cli", "ink"],
   "type": "module",
   "bin": {
     "tron": "dist/src/cli.js"
   },
+  "files": ["dist/src", "README.md", "LICENSE"],
   "engines": {
     "node": ">=22"
   },
