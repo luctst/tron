@@ -16,7 +16,7 @@ pnpm build && node --test dist/test/grid.test.js        # one test file
 pnpm build && node --test --test-name-pattern='popup' dist/test/grid.test.js   # one test by name
 pnpm smoke                                 # adapter check against a Docker Postgres (see below)
 pnpm build && python3 scripts/pty-smoke.py               # 22-assertion end-to-end TUI run in a pseudo-terminal
-pnpm link --global                         # installs the `tron` binary from dist/src/cli.js
+pnpm add --global .                        # installs the `tron` binary (pnpm 11 dropped `link --global`)
 ```
 
 Tests run from compiled output, so every test cycle starts with `tsc`; there is no watch mode and no test-runner dependency. UI tests are `.tsx` because they render components, and Node cannot strip JSX on its own.

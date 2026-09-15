@@ -8,7 +8,7 @@ Node 22 or newer.
 
 ```bash
 git clone <this repo> && cd tron
-pnpm install && pnpm build && pnpm link --global
+pnpm install && pnpm add --global .
 ```
 
 ## Configure
