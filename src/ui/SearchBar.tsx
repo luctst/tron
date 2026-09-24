@@ -84,8 +84,11 @@ export function SearchBar({ active, history, onRun, onLeave }: Props) {
       if (key.rightArrow) return setLine((l) => moveTo(l, l.cursor + 1))
       if (key.home || (key.ctrl && input === 'a')) return setLine((l) => moveTo(l, 0))
       if (key.end || (key.ctrl && input === 'e')) return setLine((l) => moveTo(l, l.text.length))
-      if (key.backspace || key.delete) return setLine((l) => cut(l, l.cursor - 1))
-      if (key.ctrl && input === 'u') return setLine(atEnd(''))
+      if ((key.meta && key.backspace) || (key.ctrl && input === 'w')) return setLine((l) => cut(l, wordLeft(l.text, l.cursor)))
+      if (key.backspace) return setLine((l) => cut(l, l.cursor - 1))
+      if (key.delete) return setLine((l) => cut(l, l.cursor + 1))
+      if (key.ctrl && input === 'u') return setLine((l) => cut(l, 0))
+      if (key.ctrl && input === 'k') return setLine((l) => cut(l, l.text.length))
       if (key.ctrl || key.meta || key.tab || !input) return
       if (/[\r\n]/.test(input)) {
         // Ink hands coalesced keystrokes to us as one chunk: `text\r` is text followed by Enter.

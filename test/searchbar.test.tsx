@@ -18,6 +18,11 @@ const CTRL_A = '\u0001'
 const CTRL_E = '\u0005'
 const HOME = `${ESC}[H`
 const END = `${ESC}[F`
+const BS = '\u007F'
+const FN_DEL = `${ESC}[3~`
+const OPT_BS = `${ESC}\u007F`
+const CTRL_W = '\u0017'
+const CTRL_K = '\u000B'
 const paste = (s: string) => `${ESC}[200~${s}${ESC}[201~`
 
 /** Writes each chunk in its own tick, presses Enter, returns what ran. */
@@ -175,4 +180,24 @@ test('keys written before a re-render apply in order', async () => {
 
 test('characters typed with ⌥ on AZERTY insert like any other', async () => {
   assert.equal(await typed(['a', '|', '[', '{']), 'a|[{')
+})
+
+test('Backspace deletes before the cursor, fn-Delete after it', async () => {
+  assert.equal(await typed(['abXc', LEFT, BS]), 'abc')
+  assert.equal(await typed(['abXc', LEFT, LEFT, FN_DEL]), 'abc')
+})
+
+test('Backspace at the start and fn-Delete at the end are no-ops', async () => {
+  assert.equal(await typed(['abc', CTRL_A, BS]), 'abc')
+  assert.equal(await typed(['abc', FN_DEL]), 'abc')
+})
+
+test('⌥Backspace and Ctrl-W delete the word before the cursor', async () => {
+  assert.equal(await typed(['select users.id', OPT_BS]), 'select users.')
+  assert.equal(await typed(['select users', CTRL_W, 'orders']), 'select orders')
+})
+
+test('Ctrl-U deletes to the start and Ctrl-K to the end of the line', async () => {
+  assert.equal(await typed(['select users', OPT_LEFT, CTRL_U]), 'users')
+  assert.equal(await typed(['select users', OPT_LEFT, CTRL_K, 'orders']), 'select orders')
 })
