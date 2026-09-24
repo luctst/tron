@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { render } from 'ink-testing-library'
-import { SearchBar, cut, insert, moveTo, wordLeft, wordRight } from '../src/ui/SearchBar.js'
+import { SearchBar, cut, insert, moveTo, visible, wordLeft, wordRight } from '../src/ui/SearchBar.js'
 
 const tick = () => new Promise((r) => setTimeout(r, 30))
 const ESC = '\u001B'
@@ -200,4 +200,21 @@ test('⌥Backspace and Ctrl-W delete the word before the cursor', async () => {
 test('Ctrl-U deletes to the start and Ctrl-K to the end of the line', async () => {
   assert.equal(await typed(['select users', OPT_LEFT, CTRL_U]), 'users')
   assert.equal(await typed(['select users', OPT_LEFT, CTRL_K, 'orders']), 'select orders')
+})
+
+test('visible keeps the cursor cell on screen and marks the cell after the text', () => {
+  assert.deepEqual(visible({ text: 'abc', cursor: 1 }, 10), { before: 'a', at: 'b', after: 'c ' })
+  assert.deepEqual(visible({ text: 'abc', cursor: 3 }, 10), { before: 'abc', at: ' ', after: '' })
+  assert.deepEqual(visible({ text: 'abcdef', cursor: 6 }, 3), { before: 'ef', at: ' ', after: '' })
+  assert.deepEqual(visible({ text: 'abcdef', cursor: 0 }, 3), { before: '', at: 'a', after: 'bc' })
+})
+
+test('a long query shows its start when the cursor goes home and its end when it comes back', async () => {
+  const { stdin, lastFrame } = render(<SearchBar active history={[]} width={12} onRun={() => {}} onLeave={() => {}} />)
+  stdin.write('abcdefghijklmnop')
+  await tick()
+  assert.equal((lastFrame() ?? '').trimEnd(), '> hijklmnop')
+  stdin.write(CTRL_A)
+  await tick()
+  assert.equal((lastFrame() ?? '').trimEnd(), '> abcdefghij')
 })

@@ -5,6 +5,7 @@ import { clamp } from './scroll.js'
 interface Props {
   active: boolean
   history: string[]
+  width?: number
   onRun(sql: string): void
   onLeave(): void
 }
@@ -51,9 +52,18 @@ export function insert(l: Line, s: string): Line {
   return { text: l.text.slice(0, l.cursor) + s + l.text.slice(l.cursor), cursor: l.cursor + s.length }
 }
 
+/** The `width` cells around the cursor; the cell after the text is where the next character goes. */
+export function visible(l: Line, width: number): { before: string; at: string; after: string } {
+  const w = Math.max(1, width)
+  const start = Math.max(0, l.cursor - w + 1)
+  const cells = (l.text + ' ').slice(start, start + w)
+  const at = l.cursor - start
+  return { before: cells.slice(0, at), at: cells[at], after: cells.slice(at + 1) }
+}
+
 const atEnd = (text: string): Line => ({ text, cursor: text.length })
 
-export function SearchBar({ active, history, onRun, onLeave }: Props) {
+export function SearchBar({ active, history, width = 80, onRun, onLeave }: Props) {
   const [line, setLine] = useState<Line>(atEnd(''))
   const [draft, setDraft] = useState('')
   const [idx, setIdx] = useState(-1) // -1 = editing the draft, 0 = newest history entry
@@ -106,11 +116,13 @@ export function SearchBar({ active, history, onRun, onLeave }: Props) {
 
   usePaste((text) => setLine((l) => insert(l, normalizePaste(text))), { isActive: active })
 
+  const v = visible(line, width - 2) // 2 = the '> ' prompt
   return (
-    <Text wrap="truncate-start">
+    <Text wrap="truncate-end">
       {'> '}
-      {line.text}
-      {active ? <Text inverse> </Text> : null}
+      {v.before}
+      {active ? <Text inverse>{v.at}</Text> : v.at}
+      {v.after}
     </Text>
   )
 }

@@ -279,7 +279,7 @@ export function App({ db, profile }: { db: Adapter; profile: string }) {
   return (
     <Box flexDirection="column" width={size.cols} height={size.rows}>
       <Box borderStyle="single" borderColor={border('search')} height={3} paddingX={1}>
-        <SearchBar active={focus === 'search' && pending === null} history={history} onRun={(s) => void runSql(s)} onLeave={() => setFocus('grid')} />
+        <SearchBar active={focus === 'search' && pending === null} history={history} width={size.cols - 4} onRun={(s) => void runSql(s)} onLeave={() => setFocus('grid')} />
       </Box>
       <Box height={mainH}>
         <Box width={SIDEBAR_W} flexShrink={0} borderStyle="single" borderColor={border('sidebar')} overflow="hidden">
