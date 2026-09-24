@@ -8,6 +8,30 @@ const ESC = '\u001B'
 const UP = `${ESC}[A`
 const DOWN = `${ESC}[B`
 const CTRL_U = '\u0015'
+const LEFT = `${ESC}[D`
+const RIGHT = `${ESC}[C`
+const OPT_LEFT = `${ESC}b` // Terminal.app ⌥←
+const OPT_RIGHT = `${ESC}f` // Terminal.app ⌥→
+const META_LEFT = `${ESC}[1;3D` // xterm-style ⌥←
+const META_RIGHT = `${ESC}[1;3C`
+const CTRL_A = '\u0001'
+const CTRL_E = '\u0005'
+const HOME = `${ESC}[H`
+const END = `${ESC}[F`
+const paste = (s: string) => `${ESC}[200~${s}${ESC}[201~`
+
+/** Writes each chunk in its own tick, presses Enter, returns what ran. */
+async function typed(chunks: string[], history: string[] = []): Promise<string> {
+  const runs: string[] = []
+  const { stdin } = render(<SearchBar active history={history} onRun={(s) => runs.push(s)} onLeave={() => {}} />)
+  for (const c of chunks) {
+    stdin.write(c)
+    await tick()
+  }
+  stdin.write('\r')
+  await tick()
+  return runs[0] ?? ''
+}
 
 test('Enter runs the trimmed text and empty input is ignored', async () => {
   const runs: string[] = []
@@ -90,4 +114,65 @@ test('moveTo clamps, cut deletes toward either side, insert lands at the cursor'
   assert.deepEqual(cut({ text: 'ab', cursor: 0 }, -1), { text: 'ab', cursor: 0 })
   assert.deepEqual(cut({ text: 'ab', cursor: 2 }, 3), { text: 'ab', cursor: 2 })
   assert.deepEqual(insert(l, 'XY'), { text: 'abXYcd', cursor: 4 })
+})
+
+test('← and → move one character and typing inserts at the cursor', async () => {
+  assert.equal(await typed(['ac', LEFT, 'b']), 'abc')
+  assert.equal(await typed(['abc', LEFT, LEFT, RIGHT, 'X']), 'abXc')
+})
+
+test('← at the start and → at the end are no-ops', async () => {
+  assert.equal(await typed(['b', LEFT, LEFT, LEFT, 'a']), 'ab')
+  assert.equal(await typed(['a', RIGHT, RIGHT, 'b']), 'ab')
+})
+
+test('⌥← and ⌥→ jump words in both Terminal.app and xterm encodings', async () => {
+  assert.equal(await typed(['select users', OPT_LEFT, 'x']), 'select xusers')
+  assert.equal(await typed(['select users', META_LEFT, 'x']), 'select xusers')
+  assert.equal(await typed(['from users.id', OPT_LEFT, OPT_LEFT, 'x']), 'from xusers.id')
+  assert.equal(await typed(['select users', CTRL_A, OPT_RIGHT, '!']), 'select! users')
+  assert.equal(await typed(['select users', CTRL_A, META_RIGHT, '!']), 'select! users')
+})
+
+test('ESC b is a word jump, not Esc followed by b', async () => {
+  let left = 0
+  const { stdin, lastFrame } = render(<SearchBar active history={[]} onRun={() => {}} onLeave={() => left++} />)
+  stdin.write('select')
+  await tick()
+  stdin.write(OPT_LEFT)
+  await tick()
+  assert.equal(left, 0)
+  assert.doesNotMatch(lastFrame() ?? '', /b/)
+})
+
+test('Ctrl-A / Home go to the start, Ctrl-E / End to the end', async () => {
+  assert.equal(await typed(['elect', CTRL_A, 's']), 'select')
+  assert.equal(await typed(['elect', HOME, 's']), 'select')
+  assert.equal(await typed(['selec', CTRL_A, CTRL_E, 't']), 'select')
+  assert.equal(await typed(['selec', HOME, END, 't']), 'select')
+})
+
+test('paste inserts at the cursor', async () => {
+  assert.equal(await typed(['select  from t', ...Array(7).fill(LEFT), paste('*')]), 'select * from t')
+})
+
+test('a recalled history entry puts the cursor at its end', async () => {
+  assert.equal(await typed(['x', LEFT, UP, '0'], ['select 1']), 'select 10')
+})
+
+test('keys written before a re-render apply in order', async () => {
+  const runs: string[] = []
+  const { stdin } = render(<SearchBar active history={[]} onRun={(s) => runs.push(s)} onLeave={() => {}} />)
+  stdin.write('ac')
+  await tick()
+  stdin.write(LEFT)
+  stdin.write('b')
+  await tick()
+  stdin.write('\r')
+  await tick()
+  assert.deepEqual(runs, ['abc'])
+})
+
+test('characters typed with ⌥ on AZERTY insert like any other', async () => {
+  assert.equal(await typed(['a', '|', '[', '{']), 'a|[{')
 })
