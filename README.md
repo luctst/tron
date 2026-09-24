@@ -55,12 +55,19 @@ tron           # works without a name when there is exactly one
 | grid | `n` `p` | next / previous page of a sidebar-opened table |
 | search bar | `Enter` | run |
 | search bar | `↑` `↓` | history |
-| search bar | `Ctrl-U` | clear |
+| search bar | `←` `→` | move one character |
+| search bar | `⌥←` `⌥→` | move one word |
+| search bar | `Ctrl-A` `Ctrl-E`, `Home` `End` | start / end of line |
+| search bar | `Backspace`, `fn-Delete` | delete before / after the cursor |
+| search bar | `⌥Backspace`, `Ctrl-W` | delete the word before the cursor |
+| search bar | `Ctrl-U` / `Ctrl-K` | delete to start / end of line |
 | search bar | `Esc` | back to the grid |
 | anywhere | `Ctrl-C` | cancel the running query, or quit (rolls back a pending write) |
 | write pending | `y` | commit |
 | write pending | `q` | roll back and quit |
 | write pending | anything else | roll back |
+
+Terminal.app does not pass `⌘` keys to programs, so `⌘←` / `⌘→` do nothing; use `Ctrl-A` / `Ctrl-E`. `⌥Backspace` needs "Use Option as Meta key" (Settings → Profiles → Keyboard); leave it off if your layout types `| [ ] { }` with `⌥` (AZERTY does) and use `Ctrl-W` instead.
 
 `s`, `n`, `p`, `/`, `q` and `r` also work while the sidebar has focus, not just the grid.
 
