@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Text, useInput, usePaste } from 'ink'
+import { clamp } from './scroll.js'
 
 interface Props {
   active: boolean
@@ -11,6 +12,43 @@ interface Props {
 /** A pasted statement becomes one line, so `-- …` comments must go first or they swallow the rest. */
 function normalizePaste(text: string): string {
   return text.replace(/--[^\n]*/g, '').replace(/\s*\r?\n\s*/g, ' ')
+}
+
+export interface Line {
+  text: string
+  cursor: number
+}
+
+// ponytail: indexes are UTF-16 code units, so an emoji takes two ← presses; use Intl.Segmenter if non-BMP text shows up in SQL.
+const WORD = /\w/
+
+/** Start of the word left of `i`, skipping separators first, as ⌥← does. */
+export function wordLeft(text: string, i: number): number {
+  while (i > 0 && !WORD.test(text[i - 1])) i--
+  while (i > 0 && WORD.test(text[i - 1])) i--
+  return i
+}
+
+/** End of the word right of `i`, as ⌥→ does. */
+export function wordRight(text: string, i: number): number {
+  while (i < text.length && !WORD.test(text[i])) i++
+  while (i < text.length && WORD.test(text[i])) i++
+  return i
+}
+
+export function moveTo(l: Line, to: number): Line {
+  return { text: l.text, cursor: clamp(to, 0, l.text.length) }
+}
+
+/** Deletes between the cursor and `to`, on either side; the cursor lands where the gap starts. */
+export function cut(l: Line, to: number): Line {
+  const t = clamp(to, 0, l.text.length)
+  const [a, b] = t < l.cursor ? [t, l.cursor] : [l.cursor, t]
+  return { text: l.text.slice(0, a) + l.text.slice(b), cursor: a }
+}
+
+export function insert(l: Line, s: string): Line {
+  return { text: l.text.slice(0, l.cursor) + s + l.text.slice(l.cursor), cursor: l.cursor + s.length }
 }
 
 export function SearchBar({ active, history, onRun, onLeave }: Props) {

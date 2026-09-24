@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { render } from 'ink-testing-library'
-import { SearchBar } from '../src/ui/SearchBar.js'
+import { SearchBar, cut, insert, moveTo, wordLeft, wordRight } from '../src/ui/SearchBar.js'
 
 const tick = () => new Promise((r) => setTimeout(r, 30))
 const ESC = '\u001B'
@@ -66,4 +66,28 @@ test('a pasted statement drops -- comments before it is flattened to one line', 
   stdin.write('\u001B[200~select id -- pk\nfrom users\u001B[201~')
   await tick()
   assert.match((lastFrame() ?? '').replace(/ +/g, ' '), /select id from users/)
+})
+
+test('wordLeft and wordRight skip separators, then one run of word characters', () => {
+  const t = 'from users.id'
+  assert.equal(wordLeft(t, t.length), 11)
+  assert.equal(wordLeft(t, 11), 5)
+  assert.equal(wordLeft(t, 5), 0)
+  assert.equal(wordLeft(t, 0), 0)
+  assert.equal(wordRight(t, 0), 4)
+  assert.equal(wordRight(t, 4), 10)
+  assert.equal(wordRight(t, 10), 13)
+  assert.equal(wordRight(t, 13), 13)
+})
+
+test('moveTo clamps, cut deletes toward either side, insert lands at the cursor', () => {
+  const l = { text: 'abcd', cursor: 2 }
+  assert.deepEqual(moveTo(l, -5), { text: 'abcd', cursor: 0 })
+  assert.deepEqual(moveTo(l, 99), { text: 'abcd', cursor: 4 })
+  assert.deepEqual(cut(l, 0), { text: 'cd', cursor: 0 })
+  assert.deepEqual(cut(l, 4), { text: 'ab', cursor: 2 })
+  assert.deepEqual(cut(l, 1), { text: 'acd', cursor: 1 })
+  assert.deepEqual(cut({ text: 'ab', cursor: 0 }, -1), { text: 'ab', cursor: 0 })
+  assert.deepEqual(cut({ text: 'ab', cursor: 2 }, 3), { text: 'ab', cursor: 2 })
+  assert.deepEqual(insert(l, 'XY'), { text: 'abXYcd', cursor: 4 })
 })
