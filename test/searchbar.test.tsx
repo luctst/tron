@@ -218,3 +218,17 @@ test('a long query shows its start when the cursor goes home and its end when it
   await tick()
   assert.equal((lastFrame() ?? '').trimEnd(), '> abcdefghij')
 })
+
+test('Enter in the same burst as earlier keys runs the line those keys produced', async () => {
+  const runs: string[] = []
+  const { stdin } = render(<SearchBar active history={[]} onRun={(s) => runs.push(s)} onLeave={() => {}} />)
+  stdin.write('ac')
+  await tick()
+  stdin.write(LEFT)
+  stdin.write('x\r')
+  await tick()
+  stdin.write('b')
+  stdin.write('\r')
+  await tick()
+  assert.deepEqual(runs, ['axc', 'axbc'])
+})

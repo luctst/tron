@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Text, useInput, usePaste } from 'ink'
 import { clamp } from './scroll.js'
 
@@ -65,6 +65,12 @@ const atEnd = (text: string): Line => ({ text, cursor: text.length })
 
 export function SearchBar({ active, history, width = 80, onRun, onLeave }: Props) {
   const [line, setLine] = useState<Line>(atEnd(''))
+  // Ink can deliver several keys before React re-renders; the ref is the line they all see.
+  const latest = useRef(line)
+  const edit = (f: (l: Line) => Line) => {
+    latest.current = f(latest.current)
+    setLine(latest.current)
+  }
   const [draft, setDraft] = useState('')
   const [idx, setIdx] = useState(-1) // -1 = editing the draft, 0 = newest history entry
 
@@ -72,15 +78,15 @@ export function SearchBar({ active, history, width = 80, onRun, onLeave }: Props
 
   const recall = (next: number) => {
     if (next < -1 || next >= history.length) return
-    if (idx === -1) setDraft(line.text)
+    if (idx === -1) setDraft(latest.current.text)
     setIdx(next)
-    setLine(atEnd(next === -1 ? draft : history[history.length - 1 - next]))
+    edit(() => atEnd(next === -1 ? draft : history[history.length - 1 - next]))
   }
 
   useInput(
     (input, key) => {
       if (key.return) {
-        const sql = line.text.trim()
+        const sql = latest.current.text.trim()
         if (sql) onRun(sql)
         return
       }
@@ -88,33 +94,32 @@ export function SearchBar({ active, history, width = 80, onRun, onLeave }: Props
       if (key.upArrow) return recall(idx + 1)
       if (key.downArrow) return recall(idx - 1)
       // Terminal.app sends ⌥← ⌥→ as ESC b / ESC f; xterm-style terminals send meta+arrow.
-      if (key.meta && (key.leftArrow || input === 'b')) return setLine((l) => moveTo(l, wordLeft(l.text, l.cursor)))
-      if (key.meta && (key.rightArrow || input === 'f')) return setLine((l) => moveTo(l, wordRight(l.text, l.cursor)))
-      if (key.leftArrow) return setLine((l) => moveTo(l, l.cursor - 1))
-      if (key.rightArrow) return setLine((l) => moveTo(l, l.cursor + 1))
-      if (key.home || (key.ctrl && input === 'a')) return setLine((l) => moveTo(l, 0))
-      if (key.end || (key.ctrl && input === 'e')) return setLine((l) => moveTo(l, l.text.length))
-      if ((key.meta && key.backspace) || (key.ctrl && input === 'w')) return setLine((l) => cut(l, wordLeft(l.text, l.cursor)))
-      if (key.backspace) return setLine((l) => cut(l, l.cursor - 1))
-      if (key.delete) return setLine((l) => cut(l, l.cursor + 1))
-      if (key.ctrl && input === 'u') return setLine((l) => cut(l, 0))
-      if (key.ctrl && input === 'k') return setLine((l) => cut(l, l.text.length))
+      if (key.meta && (key.leftArrow || input === 'b')) return edit((l) => moveTo(l, wordLeft(l.text, l.cursor)))
+      if (key.meta && (key.rightArrow || input === 'f')) return edit((l) => moveTo(l, wordRight(l.text, l.cursor)))
+      if (key.leftArrow) return edit((l) => moveTo(l, l.cursor - 1))
+      if (key.rightArrow) return edit((l) => moveTo(l, l.cursor + 1))
+      if (key.home || (key.ctrl && input === 'a')) return edit((l) => moveTo(l, 0))
+      if (key.end || (key.ctrl && input === 'e')) return edit((l) => moveTo(l, l.text.length))
+      if ((key.meta && key.backspace) || (key.ctrl && input === 'w')) return edit((l) => cut(l, wordLeft(l.text, l.cursor)))
+      if (key.backspace) return edit((l) => cut(l, l.cursor - 1))
+      if (key.delete) return edit((l) => cut(l, l.cursor + 1))
+      if (key.ctrl && input === 'u') return edit((l) => cut(l, 0))
+      if (key.ctrl && input === 'k') return edit((l) => cut(l, l.text.length))
       if (key.ctrl || key.meta || key.tab || !input) return
       if (/[\r\n]/.test(input)) {
         // Ink hands coalesced keystrokes to us as one chunk: `text\r` is text followed by Enter.
         const [head] = input.split(/\r|\n/)
-        const next = insert(line, head)
-        setLine(next)
-        const sql = next.text.trim()
+        edit((l) => insert(l, head))
+        const sql = latest.current.text.trim()
         if (sql) onRun(sql)
         return
       }
-      setLine((l) => insert(l, input))
+      edit((l) => insert(l, input))
     },
     { isActive: active },
   )
 
-  usePaste((text) => setLine((l) => insert(l, normalizePaste(text))), { isActive: active })
+  usePaste((text) => edit((l) => insert(l, normalizePaste(text))), { isActive: active })
 
   const v = visible(line, width - 2) // 2 = the '> ' prompt
   return (
