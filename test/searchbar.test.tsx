@@ -232,3 +232,13 @@ test('Enter in the same burst as earlier keys runs the line those keys produced'
   await tick()
   assert.deepEqual(runs, ['axc', 'axbc'])
 })
+
+test('mid-line the window shows text on both sides of the cursor', async () => {
+  assert.deepEqual(visible({ text: 'abcdefghij', cursor: 5 }, 4), { before: 'de', at: 'f', after: 'g' })
+  const { stdin, lastFrame } = render(<SearchBar active history={[]} width={12} onRun={() => {}} onLeave={() => {}} />)
+  stdin.write('abcdefghijklmnop')
+  await tick()
+  stdin.write(LEFT + LEFT + LEFT)
+  await tick()
+  assert.equal((lastFrame() ?? '').trimEnd(), '> hijklmnop')
+})

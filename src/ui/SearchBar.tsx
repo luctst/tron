@@ -52,10 +52,13 @@ export function insert(l: Line, s: string): Line {
   return { text: l.text.slice(0, l.cursor) + s + l.text.slice(l.cursor), cursor: l.cursor + s.length }
 }
 
-/** The `width` cells around the cursor; the cell after the text is where the next character goes. */
+/**
+ * The `width` cells around the cursor, centred so text shows on both sides; the cell after the text is
+ * where the next character goes. Derived per render, so the window jumps rather than scrolls.
+ */
 export function visible(l: Line, width: number): { before: string; at: string; after: string } {
   const w = Math.max(1, width)
-  const start = Math.max(0, l.cursor - w + 1)
+  const start = clamp(l.cursor - Math.floor(w / 2), 0, Math.max(0, l.text.length + 1 - w))
   const cells = (l.text + ' ').slice(start, start + w)
   const at = l.cursor - start
   return { before: cells.slice(0, at), at: cells[at], after: cells.slice(at + 1) }
