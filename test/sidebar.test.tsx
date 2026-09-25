@@ -96,3 +96,57 @@ test('filtering after scrolling deep keeps the top of the shorter list visible',
   assert.match(lastFrame() ?? '', /big/)
   assert.match(lastFrame() ?? '', /t00/)
 })
+
+test('typing a filter selects the first match and Enter opens it', async () => {
+  const opened: TableRef[] = []
+  const captured: boolean[] = []
+  const { stdin } = render(
+    <Sidebar tables={tables} selected={null} active width={20} height={10} onOpen={(t) => opened.push(t)} onLeave={noop} onCapture={(on) => captured.push(on)} />,
+  )
+  stdin.write('f')
+  await tick()
+  stdin.write('rs')
+  await tick()
+  stdin.write('\r')
+  await tick()
+  assert.deepEqual(opened, [tables[1]])
+  assert.deepEqual(captured, [true, false])
+})
+
+test('↑ and ↓ move between matches while filtering; Enter with no match opens nothing', async () => {
+  const opened: TableRef[] = []
+  const { stdin } = render(
+    <Sidebar tables={tables} selected={null} active width={20} height={10} onOpen={(t) => opened.push(t)} onLeave={noop} onCapture={noop} />,
+  )
+  stdin.write('f')
+  await tick()
+  stdin.write('rs')
+  await tick()
+  stdin.write('\u001B[B')
+  await tick()
+  stdin.write('\r')
+  await tick()
+  assert.deepEqual(opened, [tables[2]])
+  stdin.write('f')
+  await tick()
+  stdin.write('zzz')
+  await tick()
+  stdin.write('\r')
+  await tick()
+  assert.deepEqual(opened, [tables[2]])
+})
+
+test('filter keys written before a re-render all land', async () => {
+  const opened: TableRef[] = []
+  const { stdin } = render(
+    <Sidebar tables={tables} selected={null} active width={20} height={10} onOpen={(t) => opened.push(t)} onLeave={noop} onCapture={noop} />,
+  )
+  stdin.write('f')
+  await tick()
+  stdin.write('u')
+  stdin.write('s')
+  await tick()
+  stdin.write('\r')
+  await tick()
+  assert.deepEqual(opened, [tables[2]])
+})
