@@ -48,7 +48,7 @@ tron           # works without a name when there is exactly one
 | sidebar | `j` `k` `g` `G` | move |
 | sidebar | `Enter` `l` | open table (or toggle schema) |
 | sidebar | `h` | collapse schema |
-| sidebar | `f` | filter by substring, `Enter` keeps it, `Esc` clears |
+| sidebar | `f` | filter by substring: `↑` `↓` pick a match, `Enter` opens it and keeps the filter, `Esc` clears |
 | grid | `h` `j` `k` `l` `g` `G` | move |
 | grid | `Enter` | show the full cell value, any key closes |
 | grid | `s` | toggle structure (columns, pk, fk, indexes) |
