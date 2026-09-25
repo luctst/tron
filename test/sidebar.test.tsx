@@ -136,6 +136,13 @@ test('↑ and ↓ move between matches while filtering; Enter with no match open
   assert.deepEqual(opened, [tables[2]])
 })
 
+test('the footer says how to filter', () => {
+  const { lastFrame } = render(
+    <Sidebar tables={tables} selected={null} active width={24} height={10} onOpen={noop} onLeave={noop} onCapture={noop} />,
+  )
+  assert.match(lastFrame() ?? '', /3 tables · f filter/)
+})
+
 test('filter keys written before a re-render all land', async () => {
   const opened: TableRef[] = []
   const { stdin } = render(

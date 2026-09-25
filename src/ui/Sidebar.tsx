@@ -136,7 +136,7 @@ export function Sidebar({ tables, selected, active, width, height, onOpen, onLea
       })}
       <Spacer />
       <Text dimColor={!filtering} wrap="truncate-end">
-        {filtering ? `f: ${filter}▌` : filter ? `f: ${filter}` : `${tables.length} tables`}
+        {filtering ? `f: ${filter}▌` : filter ? `f: ${filter}` : `${tables.length} tables · f filter`}
       </Text>
     </Box>
   )
