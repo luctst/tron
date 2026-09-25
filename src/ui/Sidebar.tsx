@@ -43,7 +43,8 @@ export function Sidebar({ tables, selected, active, width, height, onOpen, onLea
 
   const lines = buildLines(tables, filter, collapsed)
   const listHeight = Math.max(1, height - 1) // last line is the filter prompt
-  const cur = clamp(cursor, 0, Math.max(0, lines.length - 1))
+  // cursor -1 = "the first table", which is where every filter keystroke puts the selection so Enter opens it
+  const cur = cursor < 0 ? Math.max(0, lines.findIndex((l) => l.kind === 'table')) : clamp(cursor, 0, Math.max(0, lines.length - 1))
   const start = scrollTo(cur, clamp(offset, 0, Math.max(0, lines.length - listHeight)), listHeight)
 
   const jump = (to: number) => {
@@ -59,6 +60,11 @@ export function Sidebar({ tables, selected, active, width, height, onOpen, onLea
       return n
     })
   const collapse = (schema: string) => setCollapsed((c) => new Set(c).add(schema))
+  const refilter = (f: (prev: string) => string) => {
+    setFilter(f)
+    setCursor(-1)
+    setOffset(0)
+  }
 
   useInput(
     (input, key) => {
@@ -72,11 +78,15 @@ export function Sidebar({ tables, selected, active, width, height, onOpen, onLea
         if (key.return) {
           setFiltering(false)
           onCapture(false)
+          const line = lines[cur]
+          if (line?.kind === 'table') onOpen(line.ref)
           return
         }
-        if (key.backspace || key.delete) return setFilter((f) => f.slice(0, -1))
+        if (key.downArrow) return jump(cur + 1)
+        if (key.upArrow) return jump(cur - 1)
+        if (key.backspace || key.delete) return refilter((f) => f.slice(0, -1))
         if (key.ctrl || key.meta || key.tab || !input) return
-        setFilter((f) => f + input)
+        refilter((f) => f + input)
         return
       }
       if (key.escape) return onLeave()
@@ -126,7 +136,7 @@ export function Sidebar({ tables, selected, active, width, height, onOpen, onLea
       })}
       <Spacer />
       <Text dimColor={!filtering} wrap="truncate-end">
-        {filtering ? `f: ${filter}▌` : filter ? `f: ${filter}` : `${tables.length} tables`}
+        {filtering ? `f: ${filter}▌` : filter ? `f: ${filter}` : `${tables.length} tables · f filter`}
       </Text>
     </Box>
   )
